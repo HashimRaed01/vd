@@ -1,0 +1,60 @@
+{% extends "base.html" %} {% block title %}Home - VideoDownloader{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold text-body">Paste your link here</h1>
+  {% if session.user_email %}
+  <span class="text-muted">Welcome, {{ session.user_email }}</span>
+  <a
+    href="{{ url_for('logout') }}"
+    class="btn btn-outline-danger rounded-pill ms-2"
+    >Logout</a
+  >
+  {% else %}
+  <a href="{{ url_for('login') }}" class="btn btn-outline-primary rounded-pill"
+    >Upgrade 🔒</a
+  >
+  {% endif %}
+</div>
+
+<form
+  method="POST"
+  action="/resolutions"
+  class="w-75 mx-auto"
+  id="downloadForm"
+>
+  <div class="mb-3">
+    <input
+      type="text"
+      name="url"
+      id="urlInput"
+      class="form-control rounded-pill"
+      placeholder="https://..."
+      required
+    />
+  </div>
+
+  <div class="d-flex justify-content-center gap-2">
+    <button class="btn btn-primary px-4 py-2 rounded-pill" type="submit">
+      ⬇️ Download
+    </button>
+    <button
+      type="button"
+      class="btn btn-secondary px-4 py-2 rounded-pill"
+      onclick="pasteFromClipboard()"
+    >
+      📋 Paste Here
+    </button>
+  </div>
+</form>
+
+<script>
+  function pasteFromClipboard() {
+    navigator.clipboard
+      .readText()
+      .then((text) => (document.getElementById("urlInput").value = text))
+      .catch((err) => alert("Failed to read clipboard: " + err));
+  }
+</script>
+
+{% endblock %}

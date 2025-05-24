@@ -1,0 +1,80 @@
+{% extends "base.html" %} {% block title %}Select Resolution{% endblock %} {%
+block content %}
+<h2 class="mb-4">{{ title }}</h2>
+<p><strong>URL:</strong> {{ url }}</p>
+
+<!-- Free video formats (up to 1080p) -->
+<h4 class="mt-4">Available Video Formats</h4>
+<div class="d-flex flex-wrap gap-2">
+  {% for format in video_formats %}
+  <button
+    class="btn btn-outline-success"
+    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+  >
+    {{ format.label }}
+  </button>
+  {% endfor %}
+</div>
+
+<!-- Premium-only video formats (2K/4K) -->
+{% if premium_formats %}
+<h4 class="mt-4">🔒 Premium Formats (2K/4K)</h4>
+<div class="d-flex flex-wrap gap-2">
+  {% for format in premium_formats %} {% if is_logged_in %}
+  <button
+    class="btn btn-outline-warning"
+    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+  >
+    {{ format.label }}
+  </button>
+  {% else %}
+  <a href="/pricing" class="btn btn-outline-secondary">
+    {{ format.label }} 🔒
+  </a>
+  {% endif %} {% endfor %}
+</div>
+{% endif %}
+
+<!-- Audio formats -->
+{% if audio_formats %}
+<h4 class="mt-4">Audio Only</h4>
+<div class="d-flex flex-wrap gap-2">
+  {% for format in audio_formats %}
+  <button
+    class="btn btn-outline-primary"
+    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+  >
+    {{ format.label }}
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+  function startDownload(url, formatId, downloadId) {
+    const socket = io();
+
+    socket.emit("start_download", {
+      url: url,
+      format_id: formatId,
+      download_id: downloadId,
+    });
+
+    socket.on("progress", (data) => {
+      console.log("Progress:", data.percent);
+    });
+
+    socket.on("redirect", (data) => {
+      window.location.href = data.url;
+    });
+
+    socket.on("done", (data) => {
+      alert(data.message);
+    });
+
+    socket.on("error", (data) => {
+      alert("Error: " + data.message);
+    });
+  }
+</script>
+{% endblock %}

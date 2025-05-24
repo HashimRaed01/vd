@@ -1,0 +1,88 @@
+{% extends "base.html" %} {% block title %}TikTok Formats{% endblock %} {% block
+content %}
+
+<h2 class="mb-4 text-body fw-bold">
+  TikTok media from: <strong>{{ url }}</strong>
+</h2>
+
+<div id="progress-area" class="mb-4 text-center" style="display: none">
+  <div class="progress" style="height: 30px">
+    <div
+      id="progress-bar"
+      class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+      role="progressbar"
+      style="width: 0%"
+    >
+      0%
+    </div>
+  </div>
+  <p class="mt-2 text-body">Downloading...</p>
+</div>
+
+{% if video_formats %}
+<h4 class="text-body">Video Formats</h4>
+<div class="row g-3 mb-4">
+  {% for item in video_formats %}
+  <div class="col-md-4">
+    <button
+      class="btn btn-outline-primary w-100 rounded-pill"
+      onclick="startDownload('{{ url }}', '{{ item.id }}', '{{ uuid }}')"
+    >
+      🎥 {{ item.label }}
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %} {% if audio_formats %}
+<h4 class="text-body">Audio Formats</h4>
+<div class="row g-3">
+  {% for item in audio_formats %}
+  <div class="col-md-4">
+    <button
+      class="btn btn-outline-success w-100 rounded-pill"
+      onclick="startDownload('{{ url }}', '{{ item.id }}', '{{ uuid }}')"
+    >
+      🎧 {{ item.label }}
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  function startDownload(url, format_id, download_id) {
+    document.getElementById("progress-area").style.display = "block";
+    socket.emit("start_download", { url, format_id, download_id });
+  }
+
+  socket.on("progress", (data) => {
+    const bar = document.getElementById("progress-bar");
+    bar.style.width = data.percent;
+    bar.textContent = data.percent;
+  });
+
+  socket.on("done", () => {
+    document.getElementById("progress-bar").classList.add("bg-info");
+  });
+
+  socket.on("error", (data) => {
+    alert("Download error: " + data.message);
+  });
+
+  socket.on("completed", () => {
+    document
+      .getElementById("progress-bar")
+      .classList.remove("progress-bar-animated");
+    document.getElementById("progress-bar").classList.add("bg-success");
+    alert("✅ Download completed!");
+  });
+
+  socket.on("redirect", (data) => {
+    window.location.href = data.url;
+  });
+</script>
+
+{% endblock %}

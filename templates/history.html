@@ -1,0 +1,53 @@
+{% extends "base.html" %} {% block title %}Download History{% endblock %} {%
+block content %}
+
+<div class="container mt-5">
+  <h2 class="text-center text-body mb-4">📜 Your Download History</h2>
+
+  {% if history and history|length > 0 %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">Title</th>
+          <th scope="col">Platform</th>
+          <th scope="col">Format</th>
+          <th scope="col">Date</th>
+          <th scope="col">Download</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in history %}
+        <tr>
+          <td class="text-body">{{ item.title }}</td>
+          <td class="text-capitalize text-muted">{{ item.platform }}</td>
+          <td class="text-muted">{{ item.format_id }}</td>
+          <td class="text-muted">{{ item.timestamp }}</td>
+          <td>
+            <a
+              href="{{ url_for('fetch_file', download_id=item.uuid) }}"
+              class="btn btn-sm btn-outline-primary rounded-pill"
+              >⬇ Download</a
+            >
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-center text-muted">
+    No downloads yet. Start downloading to see history here.
+  </p>
+  {% endif %}
+
+  <div class="text-center mt-4">
+    <a
+      href="{{ url_for('home') }}"
+      class="btn btn-outline-dark rounded-pill px-4"
+      >← Back to Home</a
+    >
+  </div>
+</div>
+
+{% endblock %}

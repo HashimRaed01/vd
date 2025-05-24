@@ -1,0 +1,54 @@
+{% extends "base.html" %} {% block title %}Pricing - VideoDownloader{% endblock
+%} {% block content %}
+
+<div class="container py-5 text-body">
+  <h1 class="text-center fw-bold mb-5">Choose Your Plan</h1>
+  <div class="row justify-content-center">
+    <!-- Free Plan -->
+    <div class="col-md-5 mb-4">
+      <div class="card border-primary h-100">
+        <div class="card-header bg-primary text-white text-center">
+          <h2 class="my-2">Free Plan</h2>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title text-center">$0/month</h3>
+          <ul class="list-unstyled mt-3 mb-4">
+            <li>✅ Download videos up to 1080p</li>
+            <li>🕒 30-second wait before each download</li>
+            <li>🎯 No login required</li>
+            <li>🚫 No access to 2K / 4K downloads</li>
+            <li>🧲 Ads shown during download</li>
+          </ul>
+        </div>
+        <div class="card-footer text-center">
+          <button class="btn btn-outline-primary disabled">
+            You're on this plan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Premium Plan -->
+    <div class="col-md-5 mb-4">
+      <div class="card border-success h-100">
+        <div class="card-header bg-success text-white text-center">
+          <h2 class="my-2">Premium Plan</h2>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title text-center">$9/month</h3>
+          <ul class="list-unstyled mt-3 mb-4">
+            <li>✅ Download in all resolutions (including 2K / 4K)</li>
+            <li>🚀 Instant downloads with no ads</li>
+            <li>🔐 Secure access with Google login</li>
+            <li>🕓 Unlimited usage, no wait time</li>
+          </ul>
+        </div>
+        <div class="card-footer text-center">
+          <a href="/login" class="btn btn-success">Upgrade with Google</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %} {% block title %}Premium Features - VideoDownloader{%
+endblock %} {% block content %}
+
+<div class="text-center mt-5">
+  <h1 class="fw-bold text-body">👑 Premium Dashboard</h1>
+
+  {% if session.user_email %}
+  <p class="lead text-muted mt-3">
+    Welcome, <strong>{{ session.user_email }}</strong>
+  </p>
+  {% endif %}
+
+  <div class="mt-4">
+    <p class="mb-3">Here you can access exclusive premium features:</p>
+    <ul class="list-group list-group-flush w-50 mx-auto text-start">
+      <li class="list-group-item">✅ Unlimited downloads</li>
+      <li class="list-group-item">✅ Higher quality formats (e.g., 4K)</li>
+      <li class="list-group-item">✅ No wait timer</li>
+      <li class="list-group-item">✅ Access to download history</li>
+    </ul>
+
+    <a
+      href="{{ url_for('home') }}"
+      class="btn btn-primary mt-4 rounded-pill px-4"
+      >← Back to Home</a
+    >
+  </div>
+</div>
+
+{% endblock %}

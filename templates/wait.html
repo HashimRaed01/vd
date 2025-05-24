@@ -1,0 +1,43 @@
+{% extends "base.html" %} {% block title %}Please Wait...{% endblock %} {% block
+content %}
+
+<div class="container text-center mt-5">
+  <h1 class="fw-bold text-body mb-3">⏳ Preparing your download...</h1>
+  <p class="lead text-muted mb-4">
+    Please wait <span id="countdown">{{ seconds }}</span> seconds to continue.
+  </p>
+
+  <div class="progress w-75 mx-auto mb-4" style="height: 25px">
+    <div
+      id="progressBar"
+      class="progress-bar progress-bar-striped bg-info"
+      role="progressbar"
+      style="width: 0%"
+      aria-valuenow="0"
+      aria-valuemin="0"
+      aria-valuemax="{{ seconds }}"
+    ></div>
+  </div>
+
+  <div class="text-muted">Premium users skip this step 👑</div>
+</div>
+
+<script>
+  let seconds = {{ seconds }};
+  const countdownEl = document.getElementById("countdown");
+  const progressEl = document.getElementById("progressBar");
+
+  const interval = setInterval(() => {
+    seconds--;
+    countdownEl.textContent = seconds;
+    const progress = 100 - (seconds / {{ seconds }}) * 100;
+    progressEl.style.width = progress + "%";
+
+    if (seconds <= 0) {
+      clearInterval(interval);
+      window.location.href = "/fetch_file/{{ uuid }}";
+    }
+  }, 1000);
+</script>
+
+{% endblock %}
