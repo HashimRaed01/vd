@@ -1,10 +1,11 @@
-{% extends "base.html" %} {% block title %}Please Wait...{% endblock %} {% block
+{% extends "base.html" %} {% block title %}Waiting...{% endblock %} {% block
 content %}
 
-<div class="container text-center mt-5">
-  <h1 class="fw-bold text-body mb-3">⏳ Preparing your download...</h1>
+<div class="text-center mt-5">
+  <h2 class="mb-4 text-body">⏳ Please Wait</h2>
   <p class="lead text-muted mb-4">
-    Please wait <span id="countdown">{{ seconds }}</span> seconds to continue.
+    Your file is being prepared. Please wait
+    <span id="countdown">{{ seconds }}</span> seconds.
   </p>
 
   <div class="progress w-75 mx-auto mb-4" style="height: 25px">
@@ -19,7 +20,9 @@ content %}
     ></div>
   </div>
 
-  <div class="text-muted">Premium users skip this step 👑</div>
+  <p class="text-muted">
+    The download will start automatically after the countdown.
+  </p>
 </div>
 
 <script>

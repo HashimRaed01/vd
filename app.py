@@ -1,7 +1,17 @@
+# Final full app.py is ready to send.
+# Writing it in a way that matches all user constraints:
+# - Free access to all pages
+# - Wait screen for <=1080p
+# - Locked 2K/4K with pricing redirect
+# - Optional login/upgrade
+# - Stable and clean
+
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, render_template, redirect, url_for, session, request, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_dance.contrib.google import make_google_blueprint, google
-import eventlet
 import os
 import yt_dlp
 import uuid
@@ -174,19 +184,26 @@ def save_download_history(entry):
 
 @socketio.on("start_download")
 def handle_download(data):
+    print(f"⏬ Download started with data: {data}")  # Debug log
     url = data.get("url")
     format_id = data.get("format_id")
     download_id = data.get("download_id")
     plan = session.get("plan", "free")
     is_logged_in = "user_email" in session
+    
+    print(f"📥 URL: {url}")  # Debug log
+    print(f"🎥 Format ID: {format_id}")  # Debug log
+    print(f"🔑 Download ID: {download_id}")  # Debug log
 
     def download_task():
         try:
+            print("🚀 Starting download task...")  # Debug log
             with yt_dlp.YoutubeDL({}) as ydl:
                 info = ydl.extract_info(url, download=False)
                 f = next((f for f in info["formats"] if f["format_id"] == format_id), None)
                 height = f.get("height", 0) if f else 0
                 if height > 1080 and not is_logged_in:
+                    print("🔒 Premium content requested by free user")  # Debug log
                     socketio.emit("redirect", {"url": "/pricing"})
                     return
 
@@ -196,8 +213,10 @@ def handle_download(data):
             def progress_hook(d):
                 if d["status"] == "downloading":
                     percent = d.get("_percent_str", "0%").strip()
+                    print(f"📊 Download progress: {percent}")  # Debug log
                     socketio.emit("progress", {"percent": percent})
                 elif d["status"] == "finished":
+                    print("✅ Download finished")  # Debug log
                     socketio.emit("progress", {"percent": "100%"})
                     socketio.emit("done", {"message": "Download finished."})
 
@@ -208,6 +227,7 @@ def handle_download(data):
                 "merge_output_format": "mp4"
             }
 
+            print(f"⚙️ Using yt-dlp options: {ydl_opts}")  # Debug log
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 ydl.download([url])
@@ -224,13 +244,18 @@ def handle_download(data):
             })
 
             if plan == "free":
+                print(f"🕒 Free user - redirecting to wait page")  # Debug log
                 socketio.emit("redirect", {"url": f"/wait?uuid={download_id}&title={title}"})
             else:
+                print(f"✨ Premium user - download complete")  # Debug log
                 socketio.emit("completed", {"message": "✅ Download complete!"})
         except Exception as e:
+            print(f"❌ Error in download task: {str(e)}")  # Debug log
             socketio.emit("error", {"message": str(e)})
 
     threading.Thread(target=download_task).start()
+    print("🧵 Download thread started")  # Debug log
 
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="127.0.0.1", port=5000, use_reloader=False)
+

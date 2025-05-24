@@ -1,29 +1,52 @@
 {% extends "base.html" %} {% block title %}Select Resolution{% endblock %} {%
 block content %}
+
 <h2 class="mb-4">{{ title }}</h2>
 <p><strong>URL:</strong> {{ url }}</p>
+
+<!-- Progress bar (hidden by default) -->
+<div id="progress-container" class="mt-4 mb-4" style="display: none">
+  <div class="progress">
+    <div
+      id="progress-bar"
+      class="progress-bar"
+      role="progressbar"
+      style="width: 0%"
+      aria-valuenow="0"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      0%
+    </div>
+  </div>
+  <p id="status-message" class="mt-2 text-center"></p>
+</div>
 
 <!-- Free video formats (up to 1080p) -->
 <h4 class="mt-4">Available Video Formats</h4>
 <div class="d-flex flex-wrap gap-2">
   {% for format in video_formats %}
   <button
-    class="btn btn-outline-success"
-    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+    class="btn btn-outline-success download-btn"
+    data-url="{{ url }}"
+    data-uuid="{{ uuid }}"
+    data-format-id="{{ format.id }}"
   >
     {{ format.label }}
   </button>
   {% endfor %}
 </div>
 
-<!-- Premium-only video formats (2K/4K) -->
+<!-- Premium-only formats (2K/4K) -->
 {% if premium_formats %}
 <h4 class="mt-4">🔒 Premium Formats (2K/4K)</h4>
 <div class="d-flex flex-wrap gap-2">
   {% for format in premium_formats %} {% if is_logged_in %}
   <button
-    class="btn btn-outline-warning"
-    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+    class="btn btn-outline-warning download-btn"
+    data-url="{{ url }}"
+    data-uuid="{{ uuid }}"
+    data-format-id="{{ format.id }}"
   >
     {{ format.label }}
   </button>
@@ -41,8 +64,10 @@ block content %}
 <div class="d-flex flex-wrap gap-2">
   {% for format in audio_formats %}
   <button
-    class="btn btn-outline-primary"
-    onclick="startDownload('{{ url }}', '{{ format.id }}', '{{ uuid }}')"
+    class="btn btn-outline-primary download-btn"
+    data-url="{{ url }}"
+    data-uuid="{{ uuid }}"
+    data-format-id="{{ format.id }}"
   >
     {{ format.label }}
   </button>
@@ -50,31 +75,64 @@ block content %}
 </div>
 {% endif %}
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-  function startDownload(url, formatId, downloadId) {
+  document.addEventListener("DOMContentLoaded", function () {
     const socket = io();
+    const progressContainer = document.getElementById("progress-container");
+    const progressBar = document.getElementById("progress-bar");
+    const statusMessage = document.getElementById("status-message");
 
-    socket.emit("start_download", {
-      url: url,
-      format_id: formatId,
-      download_id: downloadId,
+    // Handle download button clicks
+    document.querySelectorAll(".download-btn").forEach((button) => {
+      button.addEventListener("click", function () {
+        // Disable all download buttons
+        document
+          .querySelectorAll(".download-btn")
+          .forEach((btn) => (btn.disabled = true));
+
+        // Show progress container
+        progressContainer.style.display = "block";
+        statusMessage.textContent = "Starting download...";
+
+        // Emit download start event
+        socket.emit("start_download", {
+          url: this.dataset.url,
+          format_id: this.dataset.formatId,
+          download_id: this.dataset.uuid,
+        });
+      });
     });
 
-    socket.on("progress", (data) => {
-      console.log("Progress:", data.percent);
+    // Handle progress updates
+    socket.on("progress", function (data) {
+      progressBar.style.width = data.percent;
+      progressBar.textContent = data.percent;
+      progressBar.setAttribute("aria-valuenow", parseInt(data.percent));
     });
 
-    socket.on("redirect", (data) => {
+    // Handle completion
+    socket.on("completed", function (data) {
+      statusMessage.textContent = data.message;
+      // Re-enable download buttons
+      document
+        .querySelectorAll(".download-btn")
+        .forEach((btn) => (btn.disabled = false));
+    });
+
+    // Handle redirection (for wait page or premium)
+    socket.on("redirect", function (data) {
       window.location.href = data.url;
     });
 
-    socket.on("done", (data) => {
-      alert(data.message);
+    // Handle errors
+    socket.on("error", function (data) {
+      statusMessage.textContent = "❌ Error: " + data.message;
+      // Re-enable download buttons
+      document
+        .querySelectorAll(".download-btn")
+        .forEach((btn) => (btn.disabled = false));
     });
-
-    socket.on("error", (data) => {
-      alert("Error: " + data.message);
-    });
-  }
+  });
 </script>
 {% endblock %}
