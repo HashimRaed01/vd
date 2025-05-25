@@ -1,11 +1,3 @@
-# Final full app.py is ready to send.
-# Writing it in a way that matches all user constraints:
-# - Free access to all pages
-# - Wait screen for <=1080p
-# - Locked 2K/4K with pricing redirect
-# - Optional login/upgrade
-# - Stable and clean
-
 import eventlet
 eventlet.monkey_patch()
 
@@ -18,8 +10,6 @@ import uuid
 import json
 import threading
 from datetime import datetime
-
-eventlet.monkey_patch()
 
 app = Flask(__name__)
 app.secret_key = "supersecret"
@@ -98,7 +88,10 @@ def detect_platform():
 def get_youtube_resolutions():
     url = request.args.get("url")
     download_id = request.args.get("uuid")
-    resolutions, premium_resolutions, audio_formats, title = [], [], [], ""
+    resolutions = []
+    premium_resolutions = []
+    audio_formats = []
+    title = ""
     is_logged_in = "user_email" in session
 
     try:
@@ -106,24 +99,58 @@ def get_youtube_resolutions():
             info = ydl.extract_info(url, download=False)
             formats = info.get("formats", [])
             title = info.get("title", "Video")
-            seen = set()
+
+            best_formats = {}
+
             for f in formats:
                 height = f.get("height")
-                ext = f.get("ext")
-                filesize = f.get("filesize")
+                ext = f.get("ext", "").lower()
+                vcodec = f.get("vcodec")
+                acodec = f.get("acodec")
+                tbr = f.get("tbr") or 0
+                filesize = f.get("filesize") or 0
                 format_id = f.get("format_id")
-                if f.get("vcodec") != "none" and ext and height:
-                    label = f"{height}p {ext.upper()} - {round((filesize or 0)/1e6, 1)} MB" if filesize else f"{height}p {ext.upper()}"
-                    entry = {"id": format_id, "label": label, "height": height}
-                    if format_id not in seen:
-                        if height <= 1080:
-                            resolutions.append(entry)
-                        else:
-                            premium_resolutions.append(entry)
-                        seen.add(format_id)
-                elif f.get("acodec") != "none" and f.get("vcodec") == "none":
-                    label = f"{ext.upper()} Audio - {round((filesize or 0)/1e6, 1)} MB" if filesize else f"{ext.upper()} Audio"
-                    audio_formats.append({"id": f.get("format_id"), "label": label})
+
+                if height and vcodec != "none" and ext in ["mp4", "webm"]:
+                    best_formats.setdefault(height, {})
+                    current_best = best_formats[height].get(ext)
+                    is_better = False
+                    if not current_best:
+                        is_better = True
+                    else:
+                        current_tbr = current_best.get("tbr") or 0
+                        current_size = current_best.get("filesize") or 0
+                        if tbr > current_tbr or (tbr == current_tbr and filesize > current_size):
+                            is_better = True
+                    if is_better:
+                        best_formats[height][ext] = {
+                            "id": format_id,
+                            "label": f"{height}p {ext.upper()} - {round(filesize/1e6,1)} MB" if filesize else f"{height}p {ext.upper()}",
+                            "filesize": filesize,
+                            "tbr": tbr
+                        }
+
+                elif acodec != "none" and vcodec == "none":
+                    abr = f.get("abr") or 0
+                    current_best_audio = audio_formats[0] if audio_formats else None
+                    current_score = current_best_audio.get("abr", 0) if current_best_audio else 0
+                    if not current_best_audio or abr > current_score:
+                        label = f"{ext.upper()} Audio - {round(filesize/1e6, 1)} MB" if filesize else f"{ext.upper()} Audio"
+                        audio_formats = [{
+                            "id": format_id,
+                            "label": label,
+                            "abr": abr
+                        }]
+
+            for height in sorted(best_formats.keys()):
+                for ext in ["mp4", "webm"]:
+                    f = best_formats[height].get(ext)
+                    if not f:
+                        continue
+                    if height <= 1080:
+                        resolutions.append(f)
+                    else:
+                        premium_resolutions.append(f)
 
         return render_template("select_resolution.html", url=url, title=title,
                                video_formats=resolutions,
@@ -192,13 +219,11 @@ def save_download_history(entry):
 def start_download(url, format_id, download_id, is_logged_in):
     def download_task():
         try:
-            print("🚀 Starting download task...")  # Debug log
             with yt_dlp.YoutubeDL({}) as ydl:
                 info = ydl.extract_info(url, download=False)
                 f = next((f for f in info["formats"] if f["format_id"] == format_id), None)
                 height = f.get("height", 0) if f else 0
                 if height > 1080 and not is_logged_in:
-                    print("🔒 Premium content requested by free user")  # Debug log
                     socketio.emit("redirect", {"url": "/pricing"})
                     return
 
@@ -208,10 +233,8 @@ def start_download(url, format_id, download_id, is_logged_in):
             def progress_hook(d):
                 if d["status"] == "downloading":
                     percent = d.get("_percent_str", "0%").strip()
-                    print(f"📊 Download progress: {percent}")  # Debug log
                     socketio.emit("progress", {"percent": percent})
                 elif d["status"] == "finished":
-                    print("✅ Download finished")  # Debug log
                     socketio.emit("progress", {"percent": "100%"})
                     socketio.emit("done", {"message": "Download finished."})
 
@@ -222,7 +245,6 @@ def start_download(url, format_id, download_id, is_logged_in):
                 "merge_output_format": "mp4"
             }
 
-            print(f"⚙️ Using yt-dlp options: {ydl_opts}")  # Debug log
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 ydl.download([url])
@@ -241,59 +263,38 @@ def start_download(url, format_id, download_id, is_logged_in):
             socketio.emit("completed", {"message": "✅ Download complete!"})
             
         except Exception as e:
-            print(f"❌ Error in download task: {str(e)}")  # Debug log
             socketio.emit("error", {"message": str(e)})
 
     threading.Thread(target=download_task).start()
-    print("🧵 Download thread started")  # Debug log
 
 @socketio.on("start_download")
 def handle_download(data):
-    print(f"⏬ Download request received: {data}")  # Debug log
     url = data.get("url")
     format_id = data.get("format_id")
     download_id = data.get("download_id")
     title = data.get("title", "Download")
     plan = session.get("plan", "free")
     is_logged_in = "user_email" in session
-    
-    print(f"📥 URL: {url}")  # Debug log
-    print(f"🎥 Format ID: {format_id}")  # Debug log
-    print(f"🔑 Download ID: {download_id}")  # Debug log
 
-    # For free users, always show wait page first
     if plan == "free":
-        print(f"🕒 Free user - redirecting to wait page")  # Debug log
         socketio.emit("redirect", {
             "url": f"/wait?uuid={download_id}&url={url}&format_id={format_id}&title={title}"
         })
         return
 
-    # For premium users, start download immediately
-    print(f"✨ Premium user - starting download")  # Debug log
     start_download(url, format_id, download_id, is_logged_in)
 
 @socketio.on("start_delayed_download")
 def handle_delayed_download(data):
-    print("⏳ Starting delayed download after wait period")  # Debug log
-    print(f"Received data: {data}")  # Debug log
-    
     url = data.get("url")
     format_id = data.get("format_id")
     download_id = data.get("download_id")
     is_logged_in = "user_email" in session
 
     if not all([url, format_id, download_id]):
-        error_msg = "Missing required download information"
-        print(f"❌ {error_msg}")  # Debug log
-        socketio.emit("error", {"message": error_msg})
+        socketio.emit("error", {"message": "Missing required download information"})
         return
 
-    print(f"📥 URL: {url}")  # Debug log
-    print(f"🎥 Format ID: {format_id}")  # Debug log
-    print(f"🔑 Download ID: {download_id}")  # Debug log
-    
-    # Start the download
     start_download(url, format_id, download_id, is_logged_in)
 
 if __name__ == "__main__":

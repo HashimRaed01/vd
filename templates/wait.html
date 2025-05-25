@@ -97,7 +97,7 @@ content %}
       clearInterval(timer);
       downloadStarted = true;
       message.textContent = "Starting download...";
-      statusText.textContent = "Preparing download...";
+      statusText.textContent = "Download has started";
 
       // Start the download with all necessary data
       const downloadData = {
@@ -120,7 +120,7 @@ content %}
     console.log("Progress update:", data);
     if (downloadStarted) {
       progressBar.style.width = data.percent;
-      statusText.textContent = `Downloading: ${data.percent}`;
+      statusText.textContent = "Download has started";
       message.textContent = "Download in progress...";
     }
   });
