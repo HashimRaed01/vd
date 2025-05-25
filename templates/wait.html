@@ -1,46 +1,149 @@
 {% extends "base.html" %} {% block title %}Waiting...{% endblock %} {% block
 content %}
 
-<div class="text-center mt-5">
-  <h2 class="mb-4 text-body">⏳ Please Wait</h2>
-  <p class="lead text-muted mb-4">
-    Your file is being prepared. Please wait
-    <span id="countdown">{{ seconds }}</span> seconds.
-  </p>
+<div class="container mt-5">
+  <h2 class="mb-4 text-body text-center">⏳ Please Wait</h2>
 
-  <div class="progress w-75 mx-auto mb-4" style="height: 25px">
-    <div
-      id="progressBar"
-      class="progress-bar progress-bar-striped bg-info"
-      role="progressbar"
-      style="width: 0%"
-      aria-valuenow="0"
-      aria-valuemin="0"
-      aria-valuemax="{{ seconds }}"
-    ></div>
+  <!-- Ad Space -->
+  <div class="ad-container mb-4">
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        <div class="card">
+          <div class="card-body text-center">
+            <h4>Advertisement</h4>
+            <!-- Your ad code here -->
+            <div class="p-4">
+              <div class="ad-placeholder bg-light" style="min-height: 250px">
+                <!-- Ad will be placed here -->
+                <p class="text-muted pt-5">Advertisement Space</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <p class="text-muted">
-    The download will start automatically after the countdown.
-  </p>
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <div class="progress mb-4" style="height: 25px">
+        <div
+          id="progressBar"
+          class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+          role="progressbar"
+          style="width: 0%"
+          aria-valuenow="0"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span id="status-text">Please wait {{ seconds }}s</span>
+        </div>
+      </div>
+
+      <p class="text-muted text-center">
+        <span id="message"
+          >Your download will begin after watching the advertisement.</span
+        >
+        <br />
+        <small>Premium users get instant downloads without waiting!</small>
+      </p>
+    </div>
+  </div>
 </div>
 
+<input type="hidden" id="url" value="{{ url }}" />
+<input type="hidden" id="format_id" value="{{ format_id }}" />
+<input type="hidden" id="download_id" value="{{ uuid }}" />
+<input type="hidden" id="wait_seconds" value="{{ seconds }}" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-  let seconds = {{ seconds }};
-  const countdownEl = document.getElementById("countdown");
-  const progressEl = document.getElementById("progressBar");
+  // Initialize socket with error handling
+  const socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: 5,
+  });
 
-  const interval = setInterval(() => {
-    seconds--;
-    countdownEl.textContent = seconds;
-    const progress = 100 - (seconds / {{ seconds }}) * 100;
-    progressEl.style.width = progress + "%";
+  const waitSeconds = parseInt(document.getElementById("wait_seconds").value);
+  let timeLeft = waitSeconds;
+  const progressBar = document.getElementById("progressBar");
+  const statusText = document.getElementById("status-text");
+  const message = document.getElementById("message");
+  let downloadStarted = false;
 
-    if (seconds <= 0) {
-      clearInterval(interval);
-      window.location.href = "/fetch_file/{{ uuid }}";
+  // Socket connection handlers
+  socket.on("connect", () => {
+    console.log("Socket connected");
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("Socket connection error:", error);
+    message.textContent = "Connection error. Please refresh the page.";
+  });
+
+  function updateProgress() {
+    if (!downloadStarted) {
+      const progress = ((waitSeconds - timeLeft) / waitSeconds) * 100;
+      progressBar.style.width = `${progress}%`;
+      progressBar.setAttribute("aria-valuenow", progress);
+      statusText.textContent = `Please wait ${timeLeft}s`;
+    }
+  }
+
+  const timer = setInterval(() => {
+    if (timeLeft <= 0 && !downloadStarted) {
+      clearInterval(timer);
+      downloadStarted = true;
+      message.textContent = "Starting download...";
+      statusText.textContent = "Preparing download...";
+
+      // Start the download with all necessary data
+      const downloadData = {
+        url: document.getElementById("url").value,
+        format_id: document.getElementById("format_id").value,
+        download_id: document.getElementById("download_id").value,
+        title: document.title,
+      };
+
+      console.log("Emitting start_delayed_download with data:", downloadData);
+      socket.emit("start_delayed_download", downloadData);
+    } else {
+      timeLeft--;
+      updateProgress();
     }
   }, 1000);
-</script>
 
+  // Handle download progress updates
+  socket.on("progress", function (data) {
+    console.log("Progress update:", data);
+    if (downloadStarted) {
+      progressBar.style.width = data.percent;
+      statusText.textContent = `Downloading: ${data.percent}`;
+      message.textContent = "Download in progress...";
+    }
+  });
+
+  // Handle download completion
+  socket.on("done", function (data) {
+    console.log("Download complete:", data);
+    progressBar.style.width = "100%";
+    statusText.textContent = "Download complete!";
+    message.textContent = "Preparing your file...";
+    setTimeout(() => {
+      window.location.href =
+        "/fetch_file/" + document.getElementById("download_id").value;
+    }, 1000);
+  });
+
+  // Handle errors
+  socket.on("error", function (data) {
+    console.error("Download error:", data);
+    message.textContent = "Error: " + data.message;
+    statusText.textContent = "Error occurred";
+    progressBar.classList.remove("bg-info");
+    progressBar.classList.add("bg-danger");
+  });
+</script>
 {% endblock %}

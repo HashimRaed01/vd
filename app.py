@@ -151,8 +151,15 @@ def select_instagram():
 @app.route("/wait")
 def wait_page():
     uuid_val = request.args.get("uuid")
+    url = request.args.get("url")
+    format_id = request.args.get("format_id")
     title = request.args.get("title", "Download")
-    return render_template("wait.html", uuid=uuid_val, title=title, seconds=WAIT_SECONDS)
+    return render_template("wait.html", 
+                         uuid=uuid_val,
+                         url=url,
+                         format_id=format_id,
+                         title=title,
+                         seconds=WAIT_SECONDS)
 
 @app.route("/fetch_file/<download_id>")
 def fetch_file(download_id):
@@ -182,19 +189,7 @@ def save_download_history(entry):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history[:100], f, indent=2)
 
-@socketio.on("start_download")
-def handle_download(data):
-    print(f"⏬ Download started with data: {data}")  # Debug log
-    url = data.get("url")
-    format_id = data.get("format_id")
-    download_id = data.get("download_id")
-    plan = session.get("plan", "free")
-    is_logged_in = "user_email" in session
-    
-    print(f"📥 URL: {url}")  # Debug log
-    print(f"🎥 Format ID: {format_id}")  # Debug log
-    print(f"🔑 Download ID: {download_id}")  # Debug log
-
+def start_download(url, format_id, download_id, is_logged_in):
     def download_task():
         try:
             print("🚀 Starting download task...")  # Debug log
@@ -243,12 +238,8 @@ def handle_download(data):
                 "timestamp": datetime.now().strftime("%Y-%m-%d")
             })
 
-            if plan == "free":
-                print(f"🕒 Free user - redirecting to wait page")  # Debug log
-                socketio.emit("redirect", {"url": f"/wait?uuid={download_id}&title={title}"})
-            else:
-                print(f"✨ Premium user - download complete")  # Debug log
-                socketio.emit("completed", {"message": "✅ Download complete!"})
+            socketio.emit("completed", {"message": "✅ Download complete!"})
+            
         except Exception as e:
             print(f"❌ Error in download task: {str(e)}")  # Debug log
             socketio.emit("error", {"message": str(e)})
@@ -256,6 +247,54 @@ def handle_download(data):
     threading.Thread(target=download_task).start()
     print("🧵 Download thread started")  # Debug log
 
-if __name__ == "__main__":
-    socketio.run(app, debug=True, host="127.0.0.1", port=5000, use_reloader=False)
+@socketio.on("start_download")
+def handle_download(data):
+    print(f"⏬ Download request received: {data}")  # Debug log
+    url = data.get("url")
+    format_id = data.get("format_id")
+    download_id = data.get("download_id")
+    title = data.get("title", "Download")
+    plan = session.get("plan", "free")
+    is_logged_in = "user_email" in session
+    
+    print(f"📥 URL: {url}")  # Debug log
+    print(f"🎥 Format ID: {format_id}")  # Debug log
+    print(f"🔑 Download ID: {download_id}")  # Debug log
 
+    # For free users, always show wait page first
+    if plan == "free":
+        print(f"🕒 Free user - redirecting to wait page")  # Debug log
+        socketio.emit("redirect", {
+            "url": f"/wait?uuid={download_id}&url={url}&format_id={format_id}&title={title}"
+        })
+        return
+
+    # For premium users, start download immediately
+    print(f"✨ Premium user - starting download")  # Debug log
+    start_download(url, format_id, download_id, is_logged_in)
+
+@socketio.on("start_delayed_download")
+def handle_delayed_download(data):
+    print("⏳ Starting delayed download after wait period")  # Debug log
+    print(f"Received data: {data}")  # Debug log
+    
+    url = data.get("url")
+    format_id = data.get("format_id")
+    download_id = data.get("download_id")
+    is_logged_in = "user_email" in session
+
+    if not all([url, format_id, download_id]):
+        error_msg = "Missing required download information"
+        print(f"❌ {error_msg}")  # Debug log
+        socketio.emit("error", {"message": error_msg})
+        return
+
+    print(f"📥 URL: {url}")  # Debug log
+    print(f"🎥 Format ID: {format_id}")  # Debug log
+    print(f"🔑 Download ID: {download_id}")  # Debug log
+    
+    # Start the download
+    start_download(url, format_id, download_id, is_logged_in)
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

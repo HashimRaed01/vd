@@ -4,24 +4,6 @@ block content %}
 <h2 class="mb-4">{{ title }}</h2>
 <p><strong>URL:</strong> {{ url }}</p>
 
-<!-- Progress bar (hidden by default) -->
-<div id="progress-container" class="mt-4 mb-4" style="display: none">
-  <div class="progress">
-    <div
-      id="progress-bar"
-      class="progress-bar"
-      role="progressbar"
-      style="width: 0%"
-      aria-valuenow="0"
-      aria-valuemin="0"
-      aria-valuemax="100"
-    >
-      0%
-    </div>
-  </div>
-  <p id="status-message" class="mt-2 text-center"></p>
-</div>
-
 <!-- Free video formats (up to 1080p) -->
 <h4 class="mt-4">Available Video Formats</h4>
 <div class="d-flex flex-wrap gap-2">
@@ -31,6 +13,7 @@ block content %}
     data-url="{{ url }}"
     data-uuid="{{ uuid }}"
     data-format-id="{{ format.id }}"
+    data-title="{{ title }}"
   >
     {{ format.label }}
   </button>
@@ -47,6 +30,7 @@ block content %}
     data-url="{{ url }}"
     data-uuid="{{ uuid }}"
     data-format-id="{{ format.id }}"
+    data-title="{{ title }}"
   >
     {{ format.label }}
   </button>
@@ -68,6 +52,7 @@ block content %}
     data-url="{{ url }}"
     data-uuid="{{ uuid }}"
     data-format-id="{{ format.id }}"
+    data-title="{{ title }}"
   >
     {{ format.label }}
   </button>
@@ -77,62 +62,38 @@ block content %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const socket = io();
-    const progressContainer = document.getElementById("progress-container");
-    const progressBar = document.getElementById("progress-bar");
-    const statusMessage = document.getElementById("status-message");
+  const socket = io();
 
-    // Handle download button clicks
-    document.querySelectorAll(".download-btn").forEach((button) => {
-      button.addEventListener("click", function () {
-        // Disable all download buttons
-        document
-          .querySelectorAll(".download-btn")
-          .forEach((btn) => (btn.disabled = true));
+  document.querySelectorAll(".download-btn").forEach((button) => {
+    button.addEventListener("click", function () {
+      const data = {
+        url: this.dataset.url,
+        format_id: this.dataset.formatId,
+        download_id: this.dataset.uuid,
+        title: this.dataset.title,
+      };
 
-        // Show progress container
-        progressContainer.style.display = "block";
-        statusMessage.textContent = "Starting download...";
-
-        // Emit download start event
-        socket.emit("start_download", {
-          url: this.dataset.url,
-          format_id: this.dataset.formatId,
-          download_id: this.dataset.uuid,
-        });
-      });
-    });
-
-    // Handle progress updates
-    socket.on("progress", function (data) {
-      progressBar.style.width = data.percent;
-      progressBar.textContent = data.percent;
-      progressBar.setAttribute("aria-valuenow", parseInt(data.percent));
-    });
-
-    // Handle completion
-    socket.on("completed", function (data) {
-      statusMessage.textContent = data.message;
-      // Re-enable download buttons
+      // Disable all download buttons
       document
         .querySelectorAll(".download-btn")
-        .forEach((btn) => (btn.disabled = false));
-    });
+        .forEach((btn) => (btn.disabled = true));
 
-    // Handle redirection (for wait page or premium)
-    socket.on("redirect", function (data) {
-      window.location.href = data.url;
+      // Emit download start event
+      socket.emit("start_download", data);
     });
+  });
 
-    // Handle errors
-    socket.on("error", function (data) {
-      statusMessage.textContent = "❌ Error: " + data.message;
-      // Re-enable download buttons
-      document
-        .querySelectorAll(".download-btn")
-        .forEach((btn) => (btn.disabled = false));
-    });
+  // Handle redirects (to wait page or other)
+  socket.on("redirect", function (data) {
+    window.location.href = data.url;
+  });
+
+  // Re-enable buttons on error
+  socket.on("error", function (data) {
+    document
+      .querySelectorAll(".download-btn")
+      .forEach((btn) => (btn.disabled = false));
+    alert("Error: " + data.message);
   });
 </script>
 {% endblock %}
