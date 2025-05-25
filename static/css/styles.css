@@ -1,0 +1,128 @@
+.faq-section {
+    max-width: 800px;
+    margin: 60px auto;
+    padding: 0 20px;
+}
+
+.faq-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2.2em;
+    font-weight: 600;
+    color: var(--bs-body-color, #212529);
+}
+
+.accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 1px ;
+}
+
+.accordion-item {
+    border-radius: 12px;
+    overflow: visible;
+    background-color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.accordion-item:first-child,
+.accordion-item:last-child {
+    border-radius: 12px;
+}
+
+.accordion-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.accordion-button {
+    width: 100%;
+    padding: 24px 30px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    color: #2c3e50;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.accordion-button::after {
+    content: none;
+}
+
+/* ✅ Light mode hover fix */
+.accordion-button:hover {
+    background-color: #e8f0fe;
+    color: #0d6efd;
+}
+
+.accordion-content {
+    border-top: none;
+    background-color: #ffffff;
+    border-radius: 0 0 12px 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+}
+
+.accordion-content p {
+    padding: 24px 30px;
+    margin: 0;
+    color: var(--bs-body-color, #212529);
+    line-height: 1.8;
+}
+
+.accordion-item.active .accordion-button {
+    background-color: rgba(13, 110, 253, 0.05);
+    color: var(--bs-primary, #0d6efd);
+}
+
+.accordion-item.active .accordion-content {
+    max-height: 500px;
+}
+
+.accordion-item + .accordion-item {
+    margin-top: 16px;
+}
+
+/* === DARK MODE FIX === */
+@media (prefers-color-scheme: dark) {
+    .accordion-item {
+        background-color: #1a1a1a;
+        border: none;
+    }
+
+    .accordion-button {
+        color: #f1f1f1;
+    }
+
+    .accordion-button:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .accordion-content {
+        background-color: #121212;
+    }
+
+    .accordion-content p {
+        color: #f1f1f1;
+    }
+
+    .accordion-item.active .accordion-button {
+        background-color: rgba(77, 163, 255, 0.1);
+        color: #4da3ff;
+    }
+
+    .accordion-item:hover {
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+    }
+}
+

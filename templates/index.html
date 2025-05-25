@@ -39,7 +39,6 @@
       </button>
     </div>
   </form>
-
   <script>
     function pasteFromClipboard() {
       navigator.clipboard
@@ -48,6 +47,63 @@
         .catch((err) => alert("Failed to read clipboard: " + err));
     }
   </script>
+
+  <!-- FAQ Section -->
+  <div class="faq-section mt-5">
+    <h2 class="faq-title">FAQ's</h2>
+    <div class="accordion">
+      <div class="accordion-item">
+        <button class="accordion-button">
+          What do I get with the Premium subscription?
+        </button>
+        <div class="accordion-content">
+          <p>
+            Premium users get unlimited downloads, no 30-second ad wait, and
+            full access to high-quality resolutions (2K/4K).
+          </p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-button">Can I cancel anytime?</button>
+        <div class="accordion-content">
+          <p>
+            Yes, you can cancel your subscription at any time from your account
+            settings.
+          </p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-button">
+          What formats and quality are available to free users?
+        </button>
+        <div class="accordion-content">
+          <p>
+            Free users can download up to 1080p and must wait 30 seconds before
+            each download.
+          </p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-button">
+          Can I download videos from private accounts or stories?
+        </button>
+        <div class="accordion-content">
+          <p>
+            No. Only public content is supported for privacy and legal reasons.
+          </p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-button">Is my download history saved?</button>
+        <div class="accordion-content">
+          <p>
+            Yes, for logged-in users, history is saved for 30 days. Premium
+            subscribers get lifetime download history storage.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   {% endblock %}
 </div>
